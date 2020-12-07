@@ -21,4 +21,5 @@ chown -R root:root /root/.ssh
 
 # Now start ssh.
 rm -rf /run/nologin
+chown -R dev:dev /home/dev/
 /usr/sbin/sshd -D
