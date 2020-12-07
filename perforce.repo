@@ -1,0 +1,5 @@
+[perforce]
+name=perforce Repository
+baseurl=http://package.perforce.com/yum/rhel/8/x86_64
+enabled=1
+gpgcheck=1
