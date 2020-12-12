@@ -13,12 +13,12 @@ VOLUME [ "/sys/fs/cgroup", "/data/sbin"]
 RUN cd /etc/yum.repos.d && rm -rf *
 COPY ./yum.repos.d/ /etc/yum.repos.d/
 
-RUN yum install -y make 
-RUN yum install -y make cmake3 git 
+RUN yum install -y make
+RUN yum install -y make cmake3 git
 RUN rpm -ivh https://packagecloud.io/github/git-lfs/packages/el/8/git-lfs-2.12.1-1.el8.x86_64.rpm/download
 
 RUN dnf -y --enablerepo=PowerTools install ninja-build
-RUN yum install -y yum-utils 
+RUN yum install -y yum-utils
 RUN yum-config-manager  -y --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo
 RUN  yum install -y ripgrep
 RUN yum-config-manager -y --disable copr:copr.fedorainfracloud.org:carlwgeorge:ripgrep
@@ -32,7 +32,7 @@ COPY ./pigz /usr/bin
 RUN wget https://ftp.gnu.org/gnu/binutils/binutils-2.35.1.tar.bz2
 RUN wget https://ftp.gnu.org/gnu/gcc/gcc-10.2.0/gcc-10.2.0.tar.gz
 RUN yum install -y bzip2
-RUN tar -xf binutils-2.35.1.tar.bz2 
+RUN tar -xf binutils-2.35.1.tar.bz2
 RUN yum install -y autoconf automake unzip zip gcc gcc-c++
 RUN yum install -y diffutils file
 RUN  cd binutils-2.35.1 && mkdir my_build && cd my_build && \
@@ -121,7 +121,7 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5
 RUN tar -xf cmake-3.18.5-Linux-x86_64.tar.gz && cp -rf cmake-3.18.5-Linux-x86_64/* /usr
 RUN cd llvm-11.0.0.src && mkdir my_build && cd my_build  && \
 cmake -G "Ninja" .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/ -DLLVM_TARGETS_TO_BUILD="X86" -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_Z3_SOLVER=OFF -DLLVM_BUILD_EXAMPLES=OFF -DLLVM_BUILD_TESTS=OFF -DLLVM_BUILD_DOCS=OFF
-RUN  cd llvm-11.0.0.src/my_build && ninja 
+RUN  cd llvm-11.0.0.src/my_build && ninja
 RUN  cd llvm-11.0.0.src/my_build && ninja install
 # gn 这个编译程序暂时没用,不安装了
 # https://gn.googlesource.com/gn
@@ -137,7 +137,7 @@ RUN yum install -y neovim
 
 ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-EXPOSE 22 
+EXPOSE 22
 LABEL Maintainer="Xiaoxin <xiaoxin@papergames.net>"
 LABEL Description="CentOS 8 x6 dev image"
 LABEL VERSION="2"
@@ -147,7 +147,7 @@ RUN yum install -y libss openssh openssh-server openssh-clients
 RUN rm -rf gcc-10.2.0 Python-3.9.0 binutils-2.35.1 cmake-3.18.5-Linux-x86_64 gdb-10.1 llvm-11.0.0.src openssl-1.1.1h
 ADD start.sh /start.sh
 RUN chmod +x /start.sh /tini
-RUN echo 'root:Ranxun2020' | chpasswd
+RUN echo 'root:Cyberpunk' | chpasswd
 RUN useradd -m dev && echo "dev:123456" | chpasswd
 RUN echo "dev ALL=(ALL) ALL" >> /etc/sudoers
 ENTRYPOINT ["/tini", "-g", "--"]
