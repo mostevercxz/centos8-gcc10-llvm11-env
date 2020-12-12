@@ -1,0 +1,4 @@
+neovim
+jedi
+flake8
+autopep8
