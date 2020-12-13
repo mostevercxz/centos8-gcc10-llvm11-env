@@ -12,6 +12,7 @@ call plug#begin(g:plugged_home)
   Plug 'NLKNguyen/papercolor-theme'
   " Better Visual Guide
   Plug 'Yggdroot/indentLine'
+  Plug 'elzr/vim-json'
   " syntax check
   Plug 'w0rp/ale'
   " Autocomplete
@@ -93,6 +94,12 @@ let g:ale_echo_msg_error_str = 'E'
 let g:ale_echo_msg_warning_str = 'W'
 let g:ale_echo_msg_format = '[%linter%] %s [%severity%]'
 let g:ale_linters = {'python': ['flake8']}
+let g:ale_fix_on_save = 1
+let g:ale_fixers = {
+			\   '*': ['remove_trailing_lines', 'trim_whitespace'],
+			\   'python': ['yapf'],
+			\   'javascript': ['eslint'],
+			\}
 " Airline
 let g:airline_left_sep  = ''
 let g:airline_right_sep = ''
@@ -194,8 +201,8 @@ nnoremap <c-p> :FZF<cr>
 " Plugin: deoplete
 let g:deoplete#enable_at_startup = 1
 let g:deoplete#auto_complete_start_length = 2
-let g:deoplete#enable_smart_case = 1 
-" deoplete + neosnippet + autopairs changes 
+let g:deoplete#enable_smart_case = 1
+" deoplete + neosnippet + autopairs changes
 imap <C-k>     <Plug>(neosnippet_expand_or_jump)
 smap <C-k>     <Plug>(neosnippet_expand_or_jump)
 xmap <C-k>     <Plug>(neosnippet_expand_target)
@@ -209,7 +216,7 @@ xmap <C-k>     <Plug>(neosnippet_expand_target)
     "return !col || getline('.')[col - 1]  =~ '\s'
 "endfunction"}}}
 
-imap <expr><TAB> pumvisible() ? "\<C-n>" : (neosnippet#expandable_or_jumpable() ? "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>") 
+imap <expr><TAB> pumvisible() ? "\<C-n>" : (neosnippet#expandable_or_jumpable() ? "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>")
 inoremap <expr><C-l>     deoplete#mappings#manual_complete()
 "imap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<S-TAB>"
 "imap <expr><CR> pumvisible() ? deoplete#mappings#close_popup() : "\<CR>\<Plug>AutoPairsReturn"
@@ -253,7 +260,7 @@ nnoremap <leader>gg :Ack! --type=cpp <C-R><C-W><space>
     \}
 
 
-set colorcolumn=81
+set colorcolumn=119
 set cursorline
 set expandtab
 set number
@@ -305,19 +312,19 @@ let g:gutentags_ctags_executable = 'ctags'
 set tags=./.tags;,.tags
 " gutentags 搜索工程目录的标志，碰到这些文件/目录名就停止向上一级目录递归
 let g:gutentags_project_root = ['.root', '.svn', '.git', '.hg', '.project']
- 
+
 " 所生成的数据文件的名称
 let g:gutentags_ctags_tagfile = '.tags'
- 
+
 " 将自动生成的 tags 文件全部放入 ~/.cache/tags 目录中，避免污染工程目录
 let s:vim_tags = expand('~/.cache/tags')
 let g:gutentags_cache_dir = s:vim_tags
- 
+
 " 配置 ctags 的参数
 let g:gutentags_ctags_extra_args = ['--fields=+niazS', '--extra=+q']
 let g:gutentags_ctags_extra_args += ['--c++-kinds=+px']
 let g:gutentags_ctags_extra_args += ['--c-kinds=+px']
- 
+
 " 检测 ~/.cache/tags 不存在就新建
 if !isdirectory(s:vim_tags)
     silent! call mkdir(s:vim_tags, 'p')
@@ -327,21 +334,21 @@ endif
 " 编译相关
 " 自动打开 quickfix window ，高度为 6
 let g:asyncrun_open = 6
- 
+
 " 任务结束时候响铃提醒
 let g:asyncrun_bell = 1
 let g:echodoc#enable_at_startup = 1
 set cmdheight=2
 let g:ycm_extra_conf_globlist = ['~/dev/*','!~/*']
 
-"call deoplete#custom#option({ 
+"call deoplete#custom#option({
 		"\ 'auto_complete_delay': 20,
 		"\ 'auto_refresh_delay' : 20,
 		"\ 'refresh_always' : v:false,
 		"\ 'min_pattern_length' : 2,
-		"\ })                         
+		"\ })
 		"\ 'profile': v:true,
- 
+
 " 设置 F10 打开/关闭 Quickfix 窗口
 nnoremap <F10> :call asyncrun#quickfix_toggle(6)<cr>
 nnoremap <silent> <F9> :AsyncRun clang++ -Wall -g -std=c++1z "$(VIM_FILEPATH)" -o "$(VIM_FILEDIR)/$(VIM_FILENOEXT)" <cr>
@@ -355,3 +362,4 @@ let g:goto_header_open_in_new_tab = 1
 nnoremap <F12> :GotoHeader <CR>
 imap <F12> <Esc>:GotoHeader <CR>
 nnoremap gh :GotoHeaderSwitch <CR>
+let g:vim_json_syntax_conceal = 0
