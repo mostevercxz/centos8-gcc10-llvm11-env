@@ -16,4 +16,4 @@ alias sd="svn diff -x \"-w --ignore-eol-style\""
 alias gdb='gdb -q'
 alias sdi='sudo docker images'
 alias sdp='sudo docker ps'
-
+alias viconfig='vi ~/.config/nvim/init.vim'

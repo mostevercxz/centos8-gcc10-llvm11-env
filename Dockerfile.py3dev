@@ -15,9 +15,10 @@ COPY ./yum.repos.d/ /etc/yum.repos.d/
 
 RUN yum install -y yum-utils wget bzip2 diffutils file \
 make cmake3 git autoconf automake unzip zip gcc gcc-c++ zlib-devel  bzip2-devel xz-devel lrzsz \
-ncurses-devel readline-devel libevent-devel libssh-devel libcurl-devel sqlite-devel libffi-devel zsh gdb subversion
+ncurses-devel readline-devel libevent-devel libssh-devel libcurl-devel sqlite-devel libffi-devel zsh gdb subversion glibc-locale-source glibc-langpack-en
 RUN yum install -y epel-release
 RUN yum install -y neovim
+RUN localedef -i en_US -f UTF-8 en_US.UTF-8
 RUN rpm -ivh https://packagecloud.io/github/git-lfs/packages/el/8/git-lfs-2.12.1-1.el8.x86_64.rpm/download
 
 RUN yum-config-manager  -y --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo

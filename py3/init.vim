@@ -241,8 +241,8 @@ let g:neosnippet#snippets_directory='~/.vim/plugged/neosnippet-snippets/neosnipp
 " Plugin: mileszs/ack.vim
 "----------------------------------------------
 " Open ack
-nnoremap <leader>a :Ack! <C-R><C-W><space>
-nnoremap <leader>gg :Ack! --type=cpp <C-R><C-W><space>
+nnoremap <leader>a :Rg <C-R><C-W><CR>
+nnoremap <leader>aw :Rg <C-R><C-W> -w <CR>
 
 " Rust tagbar
  let g:tagbar_type_rust = {
