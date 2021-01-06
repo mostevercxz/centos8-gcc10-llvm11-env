@@ -80,18 +80,18 @@ RUN yum install -y zsh
 # git,不需要源码安装,安装过了(with-expat待考究)
 #RUN wget https://github.com/git/git/archive/v2.29.2.tar.gz
 #RUN tar -xf v2.29.2.tar.gz && cd git-2.29.2 && make configure && ./configure --with-openssl --with-curl --with-expat && make -j45 && make install
-RUN wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tar.xz
-RUN tar -xf Python-3.9.0.tar.xz
-RUN cd Python-3.9.0 && mkdir my_build && cd my_build && ../configure --enable-shared && make -j45 && make install
+RUN wget https://www.python.org/ftp/python/3.8.2/Python-3.8.2.tar.xz
+RUN tar -xf Python-3.8.2.tar.xz
+RUN cd Python-3.8.2 && mkdir my_build && cd my_build && ../configure --enable-shared && make -j45 && make install
 RUN echo "/usr/local/lib" >> /etc/ld.so.conf.d/python3.conf && ldconfig
-RUN ln -s  /usr/local/bin/python3.9 /usr/bin/python
+RUN ln -s  /usr/local/bin/python3.8 /usr/bin/python
 # 这些python包应该装在用户目录下,而非污染系统python
 # todo,创建用户,添加python包
 #COPY ./requirements.txt /root
 #RUN pip3 install --user -r requirements.txt
 RUN wget https://ftp.gnu.org/gnu/gdb/gdb-10.1.tar.xz
 RUN tar -xf gdb-10.1.tar.xz
-RUN cd gdb-10.1 && mkdir my_build && cd my_build && ../configure --with-python=/usr/local/bin/python3.9 && make -j45  MAKEINFO=true  && make install MAKEINFO=true
+RUN cd gdb-10.1 && mkdir my_build && cd my_build && ../configure --with-python=/usr/local/bin/python3.8 && make -j45  MAKEINFO=true  && make install MAKEINFO=true
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.1/cmake-3.19.1-Linux-x86_64.tar.gz
 RUN tar -xf cmake-3.19.1-Linux-x86_64.tar.gz && cp -rf cmake-3.19.1-Linux-x86_64/* /usr/
 # 重头戏,llvm
@@ -133,22 +133,30 @@ RUN dnf -y install dotnet-sdk-3.1
 #RUN mv nvim.appimage /usr/bin/nvim && chmod +x /usr/bin/nvim && ln -s  /usr/bin/nvim /usr/bin/vim
 # todo, neovim 改成从源码编译
 RUN yum install -y epel-release
-RUN yum install -y neovim
+RUN yum install -y neovim rsync which libss openssh openssh-server openssh-clients 
 
-ENV TINI_VERSION v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+ADD ./tini /tini
 EXPOSE 22
 LABEL Maintainer="Xiaoxin <xiaoxin@papergames.net>"
-LABEL Description="CentOS 8 x6 dev image"
+LABEL Description="CentOS 8 dev image"
 LABEL VERSION="2"
-RUN yum install -y libss openssh openssh-server openssh-clients
+RUN wget https://download.redis.io/releases/redis-6.0.9.tar.gz && tar xzf redis-6.0.9.tar.gz && cd redis-6.0.9 && make && cp src/redis-cli /usr/local/bin/
 
 # 收尾工作,删掉临时目录
-RUN rm -rf gcc-10.2.0 Python-3.9.0 binutils-2.35.1 cmake-3.18.5-Linux-x86_64 gdb-10.1 llvm-11.0.0.src openssl-1.1.1h
+RUN rm -f *.tar.gz *.tar.bz2 *.tar.xz
+RUN rm -rf gcc-10.2.0 Python-3.9.0 binutils-2.35.1 cmake-3.18.5-Linux-x86_64 gdb-10.1 llvm-11.0.0.src openssl-1.1.1h 
 ADD start.sh /start.sh
 RUN chmod +x /start.sh /tini
 RUN echo 'root:Cyberpunk' | chpasswd
 RUN useradd -m dev && echo "dev:123456" | chpasswd
+ADD initworkspace /initworkspace
+RUN chmod +x /initworkspace
+ADD create_new_workspace.sh /create_new_workspace.sh
+RUN chmod +x /create_new_workspace.sh
+ADD tscancode /tscancode
+RUN chmod +x /tscancode
+ADD cfg /cfg
+RUN chmod +x /cfg
 RUN echo "dev ALL=(ALL) ALL" >> /etc/sudoers
 ENTRYPOINT ["/tini", "-g", "--"]
 CMD /start.sh
