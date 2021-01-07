@@ -1,4 +1,4 @@
-FROM centos:8
+FROM centos:8 as fullimg
 ENV container docker
 RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i == \
 systemd-tmpfiles-setup.service ] || rm -f $i; done); \
@@ -140,11 +140,19 @@ EXPOSE 22
 LABEL Maintainer="Xiaoxin <xiaoxin@papergames.net>"
 LABEL Description="CentOS 8 dev image"
 LABEL VERSION="2"
-RUN wget https://download.redis.io/releases/redis-6.0.9.tar.gz && tar xzf redis-6.0.9.tar.gz && cd redis-6.0.9 && make && cp src/redis-cli /usr/local/bin/
+RUN wget https://download.redis.io/releases/redis-6.0.9.tar.gz
+RUN tar xzf redis-6.0.9.tar.gz
+RUN cd redis-6.0.9 && make -j40 && cp src/redis-cli /usr/local/bin/
 
-# 收尾工作,删掉临时目录
-RUN rm -f *.tar.gz *.tar.bz2 *.tar.xz
-RUN rm -rf gcc-10.2.0 Python-3.9.0 binutils-2.35.1 cmake-3.18.5-Linux-x86_64 gdb-10.1 llvm-11.0.0.src openssl-1.1.1h 
+# 开始清理空间
+FROM centos:8 as cleanimg
+COPY --from=fullimg /etc /etc
+COPY --from=fullimg /opt /opt
+COPY --from=fullimg /tini /tini
+COPY --from=fullimg /usr /usr
+COPY --from=fullimg /var /var
+
+
 ADD start.sh /start.sh
 RUN chmod +x /start.sh /tini
 RUN echo 'root:Cyberpunk' | chpasswd
