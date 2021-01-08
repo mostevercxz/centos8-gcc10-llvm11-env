@@ -1,0 +1,18 @@
+version: "2"
+services:
+  worker:
+    image: cppjenkins
+    environment:
+      JAVA_OPTS: "-Xmx2048m"
+      JENKINS_MASTER: "http://10.11.6.14:8080/"
+      JENKINS_NAME: "worker"
+      JENKINS_USER: "xiaoxin"
+      JENKINS_PASS: "giant2020"
+      JENKINS_EXECUTORS: 1
+      JENKINS_RETRY: "100"
+      TZ: "Asia/Shanghai"
+    volumes:
+    - jenkins-worker:/var/jenkins_home/worker
+
+volumes:
+  jenkins-worker:
