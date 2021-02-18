@@ -61,26 +61,7 @@ RUN tar -xf pcre2-10.36.tar.gz && cd pcre2-10.36 && mkdir my_build && cd my_buil
 RUN wget https://www.openssl.org/source/openssl-1.1.1h.tar.gz
 RUN tar -xf openssl-1.1.1h.tar.gz && cd openssl-1.1.1h && mkdir my_build && cd my_build && ../config && \
 make -j45 && make install_sw && make install_ssldirs
-# ncurses,文字交互界面,感觉暂时用不到源码安装,改为系统安装
-# readline,直接安装系统开发包
-# libedit,直接装系统开发包
-# libevent,
-
-RUN wget https://ftp.gnu.org/gnu/gdb/gdb-10.1.tar.xz
-RUN tar -xf gdb-10.1.tar.xz
-RUN cd gdb-10.1 && mkdir my_build && cd my_build && ../configure --with-python=/usr/local/bin/python3.8 && make -j45  MAKEINFO=true  && make install MAKEINFO=true
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.1/cmake-3.19.1-Linux-x86_64.tar.gz
-RUN tar -xf cmake-3.19.1-Linux-x86_64.tar.gz && cp -rf cmake-3.19.1-Linux-x86_64/* /usr/
-
-
-# todo,把gdb,python也安装到 /usr/ 目录中
-RUN rpm -Uvh https://packages.microsoft.com/config/centos/8/packages-microsoft-prod.rpm
-RUN dnf -y install dotnet-sdk-3.1
-#RUN wget  https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
-#RUN mv nvim.appimage /usr/bin/nvim && chmod +x /usr/bin/nvim && ln -s  /usr/bin/nvim /usr/bin/vim
-# todo, neovim 改成从源码编译
-RUN yum install -y epel-release
-RUN yum install -y neovim rsync which libss
+RUN yum install -y rsync which
 
 ADD ./tini /tini
 LABEL Maintainer="Xiaoxin <xiaoxin@papergames.net>"
