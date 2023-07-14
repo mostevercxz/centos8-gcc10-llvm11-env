@@ -1,0 +1,58 @@
+FROM centos:8
+ENV container docker
+RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i == \
+systemd-tmpfiles-setup.service ] || rm -f $i; done); \
+rm -f /lib/systemd/system/multi-user.target.wants/*;\
+rm -f /etc/systemd/system/*.wants/*;\
+rm -f /lib/systemd/system/local-fs.target.wants/*; \
+rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+rm -f /lib/systemd/system/basic.target.wants/*;\
+rm -f /lib/systemd/system/anaconda.target.wants/*;
+VOLUME [ "/sys/fs/cgroup", "/data/sbin"]
+RUN cd /etc/yum.repos.d && rm -rf *
+COPY ./yum.repos.d/ /etc/yum.repos.d/
+
+RUN yum install -y yum-utils wget bzip2
+RUN yum install -y glibc-locale-source glibc-langpack-en
+RUN localedef -i en_US -f UTF-8 en_US.UTF-8
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
+
+RUN dnf install -y java-11-openjdk-devel
+RUN wget https://www-us.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz -P /tmp && \
+    tar xf /tmp/apache-maven-3.6.3-bin.tar.gz -C /opt && \
+    ln -s /opt/apache-maven-3.6.3 /opt/maven
+
+ENV JAVA_HOME /usr/lib/jvm/jre-openjdk
+ENV M2_HOME /opt/maven
+ENV MAVEN_HOME=/opt/maven
+ENV PATH="${M2_HOME}/bin:${PATH}"
+
+
+# 这些python包应该装在用户目录下,而非污染系统python
+# todo,创建用户,添加python包
+#COPY ./requirements.txt /root
+#RUN pip3 install --user -r requirements.txt
+
+ENV TINI_VERSION v0.19.0
+ADD ./tini /tini
+EXPOSE 22
+LABEL Maintainer="Xiaoxin <xiaoxin@papergames.net>"
+LABEL Description="CentOS 8 x6 dev image"
+LABEL VERSION="2"
+RUN yum install -y libss openssh openssh-server openssh-clients
+
+# 收尾工作,删掉临时目录
+ADD start.sh /start.sh
+RUN chmod +x /start.sh /tini
+RUN echo 'root:123456' | chpasswd
+RUN useradd -m dev && echo "dev:123456" | chpasswd
+RUN echo "dev ALL=(ALL) ALL" >> /etc/sudoers
+USER dev
+RUN echo "export PATH=~/.local/bin:\$PATH" >> /home/dev/.bash_profile
+COPY ./py3/init.vim /home/dev/.config/nvim/init.vim
+#RUN sh -c 'curl -fLo /home/dev/.local/share/nvim/site/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+#RUN nvim -E -s -u ~/.config/nvim/init.vim +PlugInstall +qall;exit 0
+USER root
+ENTRYPOINT ["/tini", "-g", "--"]
+CMD /start.sh
