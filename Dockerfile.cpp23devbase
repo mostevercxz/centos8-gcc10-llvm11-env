@@ -1,0 +1,127 @@
+FROM quay.io/centos/centos:stream9 as fullimg
+ENV container docker
+ENV HTTP_PROXY http://10.10.111.148:17891
+ENV HTTPS_PROXY http://10.10.111.148:17891
+VOLUME [ "/sys/fs/cgroup", "/data/sbin"]
+
+RUN dnf -y --enablerepo=crb install ninja-build
+RUN dnf install -y epel-release
+RUN dnf update -y
+RUN dnf install -y ripgrep
+RUN dnf config-manager --add-repo https://package.perforce.com/yum/rhel/9/x86_64
+RUN dnf update -y
+RUN dnf install -y --nogpgcheck helix-p4d
+RUN dnf install -y wget make cmake3 git git-lfs bzip2
+COPY ./pbzip2 /usr/bin
+COPY ./pigz /usr/bin
+
+# 先安装 bin-utils
+RUN wget https://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.xz
+RUN wget https://ftp.gnu.org/gnu/gcc/gcc-14.1.0/gcc-14.1.0.tar.xz
+RUN dnf install -y xz
+RUN pwd
+RUN ls
+RUN tar -xf binutils-2.42.tar.xz
+RUN dnf install -y autoconf automake unzip zip gcc gcc-c++ diffutils file
+RUN dnf install -y bison
+RUN  cd binutils-2.42 && mkdir my_build && cd my_build && \
+../configure --enable-gold --enable-ld --prefix=/usr &&  make -j30 MAKEINFO=true &&  make install MAKEINFO=true
+
+# 准备安装 gcc
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/cloog-0.18.1.tar.gz
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.2.1.tar.bz2
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/isl-0.24.tar.bz2
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.2.1.tar.gz
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/mpfr-4.1.0.tar.bz2
+RUN tar -xf gcc-14.1.0.tar.xz
+RUN tar -xf cloog-0.18.1.tar.gz -C gcc-14.1.0
+RUN tar -xf gmp-6.2.1.tar.bz2 -C gcc-14.1.0
+RUN tar -xf isl-0.24.tar.bz2 -C gcc-14.1.0
+RUN tar -xf mpc-1.2.1.tar.gz -C gcc-14.1.0
+RUN tar -xf mpfr-4.1.0.tar.bz2 -C gcc-14.1.0
+# 参考 https://gcc.gnu.org/pub/gcc/infrastructure/
+RUN cd gcc-14.1.0 && mv cloog-0.18.1 cloog && mv gmp-6.2.1 gmp && mv isl-0.24 isl && mv mpc-1.2.1 mpc && mv mpfr-4.1.0 mpfr
+RUN dnf -y --enablerepo=crb install texinfo
+RUN cd gcc-14.1.0 && mkdir my_build && cd my_build && ../configure -prefix=/usr --enable-languages=c,c++ --enable-threads=posix --disable-multilib && make -j30 && make install
+
+# 安装一些常见的库
+RUN dnf install -y zlib-devel  bzip2-devel xz-devel lrzsz ncurses-devel readline-devel libevent-devel libssh-devel libcurl-devel sqlite-devel libffi-devel
+RUN wget https://ftp.exim.org/pub/pcre/pcre2-10.37.tar.gz
+RUN tar -xf pcre2-10.37.tar.gz && cd pcre2-10.37 && mkdir my_build && cd my_build && \
+../configure --enable-shared --enable-static --enable-jit --enable-fuzz-support && make -j30 && make install
+RUN dnf -y --enablerepo=crb install libedit-devel
+# 安装openssl开发
+RUN dnf install -y openssl openssl-devel
+# 安装python3
+RUN dnf install -y python3 python3-pip python3-devel
+
+# 安装gdb
+RUN wget https://ftp.gnu.org/gnu/gdb/gdb-14.2.tar.xz
+RUN tar -xf gdb-14.2.tar.xz
+RUN dnf install gmp-devel mpfr-devel -y
+RUN dnf install which -y
+#RUN cd gdb-14.2 && mkdir my_build && cd my_build && ../configure  --with-gmp=../../gcc-14.1.0/my_build/gmp --with-mpfr=/gcc-14.1.0/my_build/mpfr --with-python=python3 && make -j30  MAKEINFO=true  && make install MAKEINFO=true
+RUN cd gdb-14.2 && mkdir my_build && cd my_build && ../configure  --with-python=python3 && make -j30  MAKEINFO=true  && make install MAKEINFO=true
+
+# 安装 cmake
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.29.3/cmake-3.29.3-linux-x86_64.tar.gz
+RUN tar -xf cmake-3.29.3-linux-x86_64.tar.gz
+RUN pwd
+RUN ls -al
+RUN ls /*
+RUN ls /cmake-3.29.3-linux-x86_64/ && cp -rf cmake-3.29.3-linux-x86_64/* /usr/
+RUN dnf install -y rsync which libss openssh openssh-server openssh-clients 
+RUN dnf install -y procps lsof
+
+# 编译 nginx 时需要
+RUN dnf install -y pcre pcre-devel
+# 安装 neovim 并配置插件
+# Installing GNU libiconv and then reinstalling GNU gettext
+# 先安装 libiconv
+RUN wget https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz
+RUN tar -xf libiconv-1.17.tar.gz
+RUN cd libiconv-1.17 && ./configure && make -j20 && make install
+RUN dnf install -y gettext
+# 下载 neovim v0.10.0 并编译
+RUN wget https://github.com/neovim/neovim/archive/refs/tags/v0.10.0.tar.gz
+RUN tar -xf v0.10.0.tar.gz
+RUN cd neovim-0.10.0 && make CMAKE_BUILD_TYPE=Release
+RUN cd neovim-0.10.0 && make install
+
+
+ADD ./tini /tini
+EXPOSE 22
+LABEL Maintainer="Giant <giant@cmge.net>"
+LABEL Description="CentOS 8 dev image"
+LABEL VERSION="2"
+RUN wget https://download.redis.io/releases/redis-6.0.9.tar.gz
+RUN tar xzf redis-6.0.9.tar.gz
+RUN cd redis-6.0.9 && make -j40 && cp src/redis-cli /usr/local/bin/
+#RUN dnf -y install dotnet-sdk-5.0
+
+# 开始清理空间
+FROM quay.io/centos/centos:stream9 as cleanimg
+COPY --from=fullimg /etc /etc
+COPY --from=fullimg /opt /opt
+COPY --from=fullimg /tini /tini
+COPY --from=fullimg /usr /usr
+COPY --from=fullimg /var /var
+
+
+ADD start.sh /start.sh
+RUN chmod +x /start.sh /tini
+RUN echo 'root:Cyberpunk' | chpasswd
+RUN useradd -m dev && echo "dev:123456" | chpasswd
+# 允许gdb调试
+RUN echo 0 > /proc/sys/kernel/yama/ptrace_scope
+#ADD initworkspace /initworkspace
+#RUN chmod +x /initworkspace
+#ADD create_new_workspace.sh /create_new_workspace.sh
+#RUN chmod +x /create_new_workspace.sh
+#ADD tscancode /tscancode
+#RUN chmod +x /tscancode
+ADD cfg /cfg
+RUN chmod +x /cfg
+RUN echo "dev ALL=(ALL) ALL" >> /etc/sudoers
+ENTRYPOINT ["/tini", "-g", "--"]
+CMD /start.sh
