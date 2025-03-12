@@ -1,0 +1,10 @@
+FROM cpp20devbase:latest as devimage
+ARG AGI_FOLDER
+COPY $AGI_FOLDER /root/agi
+ADD ./tini /tini
+EXPOSE 22
+
+ADD start.sh /start.sh
+RUN chmod +x /start.sh /tini
+ENTRYPOINT ["/tini", "-g", "--"]
+CMD /start.sh

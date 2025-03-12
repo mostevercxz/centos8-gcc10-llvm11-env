@@ -1,0 +1,116 @@
+FROM centos:8.4.2105 as fullimg
+ENV container docker
+ENV HTTP_PROXY http://10.10.111.148:17890
+ENV HTTPS_PROXY http://10.10.111.148:17890
+RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i == \
+systemd-tmpfiles-setup.service ] || rm -f $i; done); \
+rm -f /lib/systemd/system/multi-user.target.wants/*;\
+rm -f /etc/systemd/system/*.wants/*;\
+rm -f /lib/systemd/system/local-fs.target.wants/*; \
+rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+rm -f /lib/systemd/system/basic.target.wants/*;\
+rm -f /lib/systemd/system/anaconda.target.wants/*;
+VOLUME [ "/sys/fs/cgroup", "/data/sbin"]
+RUN cd /etc/yum.repos.d && rm -rf *
+COPY ./yum.repos.d/ /etc/yum.repos.d/
+
+RUN dnf -y --enablerepo=PowerTools install ninja-build
+RUN yum install -y yum-utils
+RUN yum-config-manager  -y --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo
+RUN  yum install -y ripgrep
+RUN yum-config-manager -y --disable copr:copr.fedorainfracloud.org:carlwgeorge:ripgrep
+RUN rpm --import https://package.perforce.com/perforce.pubkey
+COPY perforce.repo /etc/yum.repos.d/
+RUN yum install -y helix-p4d wget make cmake3 git git-lfs
+COPY ./pbzip2 /usr/bin
+COPY ./pigz /usr/bin
+
+RUN wget https://ftp.gnu.org/gnu/binutils/binutils-2.39.tar.xz
+RUN wget https://ftp.gnu.org/gnu/gcc/gcc-11.2.0/gcc-11.2.0.tar.xz
+RUN yum install -y bzip2
+RUN tar -xf binutils-2.39.tar.xz
+RUN yum install -y autoconf automake unzip zip gcc gcc-c++ diffutils file
+RUN yum install -y bison
+RUN  cd binutils-2.39 && mkdir my_build && cd my_build && \
+../configure --enable-gold --enable-ld --prefix=/usr &&  make -j60 MAKEINFO=true &&  make install MAKEINFO=true
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/cloog-0.18.1.tar.gz
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.2.1.tar.bz2
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/isl-0.24.tar.bz2
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.2.1.tar.gz
+RUN wget https://gcc.gnu.org/pub/gcc/infrastructure/mpfr-4.1.0.tar.bz2
+RUN tar -xf gcc-11.2.0.tar.xz
+RUN tar -xf cloog-0.18.1.tar.gz -C gcc-11.2.0
+RUN tar -xf gmp-6.2.1.tar.bz2 -C gcc-11.2.0
+RUN tar -xf isl-0.24.tar.bz2 -C gcc-11.2.0
+RUN tar -xf mpc-1.2.1.tar.gz -C gcc-11.2.0
+RUN tar -xf mpfr-4.1.0.tar.bz2 -C gcc-11.2.0
+# 参考 https://gcc.gnu.org/pub/gcc/infrastructure/
+RUN cd gcc-11.2.0 && mv cloog-0.18.1 cloog && mv gmp-6.2.1 gmp && mv isl-0.24 isl && mv mpc-1.2.1 mpc && mv mpfr-4.1.0 mpfr
+RUN dnf -y --enablerepo=PowerTools install texinfo
+RUN cd gcc-11.2.0 && mkdir my_build && cd my_build && ../configure -prefix=/usr --enable-languages=c,c++ --enable-threads=posix --disable-multilib && make -j30 && make install
+
+RUN yum install -y zlib-devel  bzip2-devel xz-devel lrzsz ncurses-devel readline-devel libevent-devel libssh-devel libcurl-devel sqlite-devel libffi-devel
+RUN wget https://ftp.exim.org/pub/pcre/pcre2-10.37.tar.gz
+RUN tar -xf pcre2-10.37.tar.gz && cd pcre2-10.37 && mkdir my_build && cd my_build && \
+../configure --enable-shared --enable-static --enable-jit --enable-fuzz-support && make -j30 && make install
+RUN dnf -y --enablerepo=PowerTools install libedit-devel
+
+# 安装openssl 1.x 版本
+RUN wget https://www.openssl.org/source/openssl-1.1.1w.tar.gz
+RUN tar -xf openssl-1.1.1w.tar.gz && cd openssl-1.1.1w && mkdir my_build && cd my_build && ../config && make -j45 && make install_sw && make install_ssldirs
+
+RUN wget https://registry.npmmirror.com/-/binary/python/3.11.0/Python-3.11.0.tar.xz
+RUN tar -xf Python-3.11.0.tar.xz
+RUN cd Python-3.11.0 && mkdir my_build && cd my_build && ../configure --enable-shared  --with-ensurepip=install && make -j60 && make install
+RUN echo "/usr/local/lib" >> /etc/ld.so.conf.d/python3.conf && ldconfig
+RUN ln -s  /usr/local/bin/python3.11 /usr/bin/python
+
+RUN wget https://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.xz
+RUN tar -xf gdb-12.1.tar.xz
+RUN yum install gmp-devel -y
+RUN cd gdb-12.1 && mkdir my_build && cd my_build && ../configure --with-python=/usr/local/bin/python3.11 && make -j30  MAKEINFO=true  && make install MAKEINFO=true
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.18.4/cmake-3.18.4-linux-x86_64.tar.gz
+RUN tar -xf cmake-3.18.4-linux-x86_64.tar.gz && ls && cp -rf cmake-3.18.4-Linux-x86_64/* /usr/
+
+RUN yum install -y tmux epel-release
+RUN yum install -y rsync which libss openssh openssh-server openssh-clients 
+RUN yum install -y pcre pcre-devel
+
+
+
+ADD ./tini /tini
+EXPOSE 22
+LABEL Maintainer="Giant <giant@cmge.net>"
+LABEL Description="CentOS 8 dev image"
+LABEL VERSION="2"
+RUN wget https://download.redis.io/releases/redis-6.0.9.tar.gz
+RUN tar xzf redis-6.0.9.tar.gz
+RUN cd redis-6.0.9 && make -j40 && cp src/redis-cli /usr/local/bin/
+#RUN dnf -y install dotnet-sdk-5.0
+
+# 开始清理空间
+FROM centos:8 as cleanimg
+COPY --from=fullimg /etc /etc
+COPY --from=fullimg /opt /opt
+COPY --from=fullimg /tini /tini
+COPY --from=fullimg /usr /usr
+COPY --from=fullimg /var /var
+
+
+ADD start.sh /start.sh
+RUN chmod +x /start.sh /tini
+RUN echo 'root:Cyberpunk' | chpasswd
+RUN useradd -m dev && echo "dev:123456" | chpasswd
+#ADD initworkspace /initworkspace
+#RUN chmod +x /initworkspace
+#ADD create_new_workspace.sh /create_new_workspace.sh
+#RUN chmod +x /create_new_workspace.sh
+#ADD tscancode /tscancode
+#RUN chmod +x /tscancode
+ADD cfg /cfg
+RUN chmod +x /cfg
+RUN echo "dev ALL=(ALL) ALL" >> /etc/sudoers
+ENTRYPOINT ["/tini", "-g", "--"]
+CMD /start.sh
